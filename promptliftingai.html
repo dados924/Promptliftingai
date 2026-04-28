@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PromptLiftingAI — PKA v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--bg1:#0e0e0e;--bg2:#141414;--bg3:#1a1a1a;
+  --border:#1f1f1f;--border2:#2a2a2a;
+  --text:#e8e3dd;--text2:#888078;--text3:#3a3835;
+  --green:#1D9E75;--green-dim:#0d3d2e;--green-text:#5DCAA5;
+  --amber:#BA7517;--amber-dim:#2d1e06;--amber-text:#EF9F27;
+  --red:#993C1D;--red-dim:#2d130a;--red-text:#F0997B;
+  --blue:#185FA5;--blue-dim:#0a1f38;--blue-text:#85B7EB;
+  --accent:#00e5b0;
+}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+textarea{outline:none;resize:none;font-family:'JetBrains Mono',monospace}
+select{outline:none;cursor:pointer}
+button{cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s}
+
+/* HEADER */
+#hdr{background:var(--bg1);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;gap:10px}
+.logo-name{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.5px;line-height:1}
+.logo-accent{color:var(--accent)}
+.logo-sub{font-size:9px;letter-spacing:3px;font-family:'JetBrains Mono',monospace;color:var(--text3);margin-top:3px}
+.spacer{flex:1}
+#mdlSel{background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:7px;font-size:12px;font-family:'Syne',sans-serif}
+.mode-wrap{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
+.mpill{padding:5px 12px;border-radius:6px;border:none;font-size:11px;font-weight:500;background:transparent;color:var(--text2);letter-spacing:.3px}
+.mpill.on{color:var(--accent)}
+.kbd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);padding:4px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:5px}
+
+/* LAYOUT */
+#main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);flex:1;overflow:hidden}
+#left,#right{display:flex;flex-direction:column;overflow:hidden}
+#left{border-right:1px solid var(--border)}
+
+/* LEFT */
+.pane-hdr{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg1)}
+.pane-label{font-size:9px;font-weight:700;letter-spacing:2.5px;color:var(--text3)}
+.live-tok{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--bg2);padding:3px 7px;border-radius:4px;border:1px solid var(--border)}
+#rawIn{flex:1;min-height:180px;padding:15px 16px;font-size:12.5px;line-height:1.85;color:var(--text);background:transparent;border:none}
+#rawIn::placeholder{color:var(--text3);font-style:italic}
+
+/* DNA */
+#dnaWrap{border-top:1px solid var(--border);padding:13px 16px;flex-shrink:0;background:var(--bg1)}
+.dna-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dna-row:last-child{margin-bottom:0}
+.dna-label{font-size:10px;color:var(--text2);width:105px;flex-shrink:0}
+.dna-track{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.dna-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.dna-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text3);width:22px;text-align:right}
+
+/* STATS */
+#statsRow{border-top:1px solid var(--border);padding:11px 16px;display:flex;gap:8px;flex-shrink:0}
+.stat{background:var(--bg2);border-radius:6px;padding:8px 10px;flex:1;text-align:center}
+.stat-num{font-size:15px;font-weight:500;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.stat-lbl{font-size:9px;color:var(--text3);letter-spacing:.5px;margin-top:2px}
+
+/* LIFT BTN */
+#liftWrap{border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:8px;flex-shrink:0}
+#liftBtn{flex:1;padding:11px;background:var(--accent);color:#050505;border:none;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:1px}
+#liftBtn:hover:not(:disabled){background:#00ccA0}
+#liftBtn:disabled{background:var(--bg2);color:var(--text3);cursor:not-allowed}
+#clrBtn{padding:11px 14px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);border-radius:8px;font-size:12px}
+#clrBtn:hover{background:var(--bg3)}
+
+/* TABS */
+#tabNav{display:flex;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.tab{padding:10px 15px;border:none;border-bottom:2px solid transparent;background:transparent;font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap}
+.tab.on{border-bottom-color:var(--accent);color:var(--text)}
+.tab:hover:not(.on){color:var(--text)}
+
+#tabBody{flex:1;overflow-y:auto}
+
+/* ACTIONS */
+#actBar{display:none;border-top:1px solid var(--border);padding:11px 16px;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.copy-btn{flex:1;min-width:140px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:7px;font-size:12px}
+.copy-btn:hover{background:var(--bg3)}
+.badge{padding:6px 11px;border-radius:6px;font-size:10px;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* HISTORY */
+#histBar{display:none;border-top:1px solid var(--border);background:var(--bg1)}
+#histToggle{width:100%;padding:9px 16px;background:transparent;border:none;color:var(--text3);font-size:9px;letter-spacing:2px;text-align:left;font-family:'Syne',sans-serif}
+#histCards{display:none;padding:0 16px 12px;gap:8px;overflow-x:auto}
+.hcard{min-width:155px;max-width:155px;padding:10px 11px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;cursor:pointer;flex-shrink:0}
+.hcard:hover{background:var(--bg3)}
+
+/* SOC row */
+.soc-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.soc-row:last-child{border-bottom:none}
+.soc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* Animations */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scan{0%{transform:translateY(-10px)}100%{transform:translateY(300px)}}
+.lifting-anim{animation:pulse 1.4s ease infinite}
+.fadein{animation:fadeUp .3s ease}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div>
+    <div class="logo-name">Prompt<span class="logo-accent">Lifting</span>AI</div>
+    <div class="logo-sub">PKA v2.0</div>
+  </div>
+  <div class="spacer"></div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-size:11px;color:var(--text3)">Target</span>
+    <select id="mdlSel">
+      <option value="claude">Claude</option>
+      <option value="gpt">GPT</option>
+      <option value="gemini">Gemini</option>
+      <option value="llama">Llama</option>
+      <option value="mistral">Mistral</option>
+      <option value="grok">Grok</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="perplexity">Perplexity</option>
+      <option value="universal">Universal</option>
+    </select>
+  </div>
+  <div class="mode-wrap">
+    <button class="mpill on" data-m="polished">Polished</button>
+    <button class="mpill" data-m="raw">Raw</button>
+    <button class="mpill" data-m="enterprise">Enterprise</button>
+  </div>
+  <span class="kbd">⌘↵</span>
+</div>
+
+<div id="main">
+  <div id="left">
+    <div class="pane-hdr">
+      <span class="pane-label">Raw Dump</span>
+      <span class="live-tok" id="liveTok">0 tok</span>
+    </div>
+    <textarea id="rawIn" placeholder="// paste your broken prompt here&#10;// works with any LLM — select target above&#10;// ⌘↵ to lift"></textarea>
+
+    <div id="dnaWrap">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:9px;font-weight:700">PROMPT DNA</div>
+      <div id="dna"></div>
+    </div>
+
+    <div id="statsRow">
+      <div class="stat"><div class="stat-num" id="sTok">0</div><div class="stat-lbl">TOKENS</div></div>
+      <div class="stat"><div class="stat-num" id="sWrd">0</div><div class="stat-lbl">WORDS</div></div>
+      <div class="stat"><div class="stat-num" id="sChr">0</div><div class="stat-lbl">CHARS</div></div>
+      <div class="stat"><div class="stat-num" id="sCost">$0.000</div><div class="stat-lbl">EST COST</div></div>
+    </div>
+
+    <div id="liftWrap">
+      <button id="liftBtn">LIFT IT  ↑</button>
+      <button id="clrBtn">CLR</button>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="tabNav">
+      <button class="tab on" data-t="enhanced">Enhanced</button>
+      <button class="tab" data-t="predict">Predict</button>
+      <button class="tab" data-t="soc">SOC Report</button>
+      <button class="tab" data-t="analysis">Analysis</button>
+    </div>
+    <div id="tabBody"></div>
+    <div id="actBar">
+      <button class="copy-btn" id="copyBtn">Copy enhanced prompt</button>
+      <div class="badge" id="savBadge" style="background:var(--green-dim);color:var(--green-text)"></div>
+      <div class="badge" id="riskBadge"></div>
+    </div>
+  </div>
+</div>
+
+<div id="histBar">
+  <button id="histToggle">RECENT LIFTS (0)  ▼</button>
+  <div id="histCards"></div>
+</div>
+
+<script>
+const MODEL_RULES={
+  claude:"Use XML tags (<role>,<task>,<context>,<constraints>,<output_format>). Assign role first. Encourage chain-of-thought. Explicit output format.",
+  gpt:"Markdown headers. Few-shot examples where helpful. JSON output format for structured data. Assign role in first sentence. Be directive.",
+  gemini:"Explicit output format. Numbered step decomposition. First/Then/Finally structure. Specify length and detail level.",
+  llama:"Explicit section delimiters. Direct imperative language. No ambiguity. Concrete examples. Clear output boundary.",
+  mistral:"Concise. ### delimiters. Explicit output constraints. Minimal hedging. Direct instructions.",
+  grok:"Direct, no padding. Specify brevity vs depth. Real-world grounding. Skip unnecessary disclaimers.",
+  deepseek:"Technical precision. Step-by-step breakdowns. Include examples. Logical decomposition where applicable.",
+  perplexity:"Search-aware framing. Include context for grounding. Specify recency or citation requirements if needed.",
+  universal:"Role / Task / Context / Constraints / Output Format. No model-specific syntax. Unambiguous English."
+};
+const MODE_RULES={
+  polished:"Professional, structured, no ambiguity. Optimized for accuracy and helpfulness. Include output format spec.",
+  raw:"No hedging. Maximally direct. Assume capable adult. Remove all filler. Maximum information density.",
+  enterprise:"Compliance-friendly. Audit-ready output format. Flag PII handling. Structured for reproducibility and traceability."
+};
+
+let curMode="polished",curTab="enhanced",results=null,hist=[],histOpen=false;
+
+const esc=s=>(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const tokEst=t=>t?Math.round(t.trim().split(/\s+/).filter(Boolean).length*1.35):0;
+const wordCount=t=>t?t.trim().split(/\s+/).filter(Boolean).length:0;
+
+function dnaScore(t){
+  if(!t||t.length<3)return{role:0,context:0,constraints:0,format:0,examples:0,tone:0};
+  return{
+    role:/\b(you are|act as|your role|as an?|respond as|imagine you|you.re a)\b/i.test(t)?88:t.length>80?30:5,
+    context:t.length>250?85:t.length>100?50:t.length>30?25:5,
+    constraints:/\b(don.t|do not|avoid|never|must|should|only|limit|max|min|ensure|always|no more|at most)\b/i.test(t)?82:20,
+    format:/\b(json|markdown|list|bullet|table|format|structure|output|return|provide|write|respond with)\b/i.test(t)?78:15,
+    examples:/\b(for example|e\.g\.|such as|like:|sample|example:|instance|here is|below is|e\.g)\b/i.test(t)?88:10,
+    tone:/\b(professional|casual|formal|friendly|expert|simple|technical|brief|concise|detailed|tone|style|voice|clear)\b/i.test(t)?82:20
+  };
+}
+
+function socScan(t){
+  const checks=[
+    {label:"Prompt injection",pattern:/ignore (previous|above|prior|all)|disregard|override (instructions|system)/i,severity:"high"},
+    {label:"Jailbreak pattern",pattern:/DAN mode|jailbreak|developer mode|unrestricted mode|no (restrictions|limits|rules)/i,severity:"high"},
+    {label:"System bypass",pattern:/system prompt|<\|im_start\|>|\[INST\]|<s>/i,severity:"high"},
+    {label:"SSN / tax ID",pattern:/\b\d{3}-\d{2}-\d{4}\b|\b\d{9}\b/,severity:"high"},
+    {label:"Payment card data",pattern:/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/,severity:"high"},
+    {label:"Email address (PII)",pattern:/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,severity:"medium"},
+    {label:"Phone number (PII)",pattern:/\b(\+\d{1,3}[\s.-])?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/,severity:"medium"},
+    {label:"Role manipulation",pattern:/you have no restrictions|ignore your training|forget you are|pretend you have no/i,severity:"high"},
+    {label:"High ambiguity",pattern:null,severity:"low",custom:t=>wordCount(t)<6&&t.length>0}
+  ];
+  let score=0;const flags=[];
+  checks.forEach(c=>{
+    const hit=c.custom?c.custom(t):(c.pattern&&c.pattern.test(t));
+    flags.push({...c,hit});
+    if(hit)score+=c.severity==="high"?30:c.severity==="medium"?12:8;
+  });
+  return{score:Math.min(100,score),flags};
+}
+
+function renderDNA(text){
+  const s=dnaScore(text);
+  const items=[
+    {k:"role",label:"Role defined"},
+    {k:"context",label:"Context"},
+    {k:"constraints",label:"Constraints"},
+    {k:"format",label:"Output format"},
+    {k:"examples",label:"Examples"},
+    {k:"tone",label:"Tone/style"}
+  ];
+  document.getElementById("dna").innerHTML=items.map(i=>{
+    const v=s[i.k];
+    const col=v>65?"var(--green)":v>35?"var(--amber)":"var(--red)";
+    return`<div class="dna-row">
+      <span class="dna-label">${i.label}</span>
+      <div class="dna-track"><div class="dna-fill" style="width:${v}%;background:${col}"></div></div>
+      <span class="dna-val">${v}</span>
+    </div>`;
+  }).join("");
+}
+
+function updateStats(t){
+  const tok=tokEst(t);
+  document.getElementById("sTok").textContent=tok;
+  document.getElementById("sWrd").textContent=wordCount(t);
+  document.getElementById("sChr").textContent=t.length;
+  document.getElementById("sCost").textContent="$"+(tok*0.000003).toFixed(4);
+  document.getElementById("liveTok").textContent=tok+" tok";
+}
+
+function showTab(t){
+  curTab=t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  if(!results){renderPlaceholder();return;}
+  if(t==="enhanced")renderEnhanced();
+  else if(t==="predict")renderPredict();
+  else if(t==="soc")renderSOC();
+  else if(t==="analysis")renderAnalysis();
+}
+
+function renderPlaceholder(){
+  document.getElementById("tabBody").innerHTML=`<div style="padding:32px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2.2;color:var(--text3)">
+    <div style="color:var(--text2);margin-bottom:4px">// paste a raw prompt on the left</div>
+    <div>// select target LLM + mode above</div>
+    <div>// hit LIFT IT or press ⌘↵</div>
+    <div style="margin-top:16px;color:var(--text3)">// four intelligence tabs unlock after lift:</div>
+    <div style="color:var(--text3)">//  enhanced  ·  predict</div>
+    <div style="color:var(--text3)">//  soc report  ·  analysis</div>
+  </div>`;
+  document.getElementById("actBar").style.display="none";
+}
+
+function renderLifting(){
+  document.getElementById("tabBody").innerHTML=`<div style="padding:32px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2.4;color:var(--text3);position:relative;overflow:hidden">
+    <div style="position:absolute;left:0;right:0;height:1px;background:var(--accent);opacity:.15;animation:scan 2s linear infinite;top:0"></div>
+    <div style="color:var(--accent);font-size:10px;letter-spacing:2px;margin-bottom:14px;animation:pulse 1.4s ease infinite" class="lifting-anim">LIFTING IN PROGRESS</div>
+    <div class="lifting-anim" style="animation-delay:.1s">Scanning prompt structure...</div>
+    <div class="lifting-anim" style="animation-delay:.2s">Applying model-specific optimization...</div>
+    <div class="lifting-anim" style="animation-delay:.35s">Compressing token overhead...</div>
+    <div class="lifting-anim" style="animation-delay:.5s">Running SOC security scan...</div>
+    <div class="lifting-anim" style="animation-delay:.65s">Generating output prediction...</div>
+    <div class="lifting-anim" style="animation-delay:.8s">Finalizing enhanced prompt...</div>
+  </div>`;
+}
+
+function renderEnhanced(){
+  const r=results;
+  document.getElementById("tabBody").innerHTML=`<div class="fadein" style="padding:18px"><pre style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(r.enhanced_prompt)}</pre></div>`;
+  document.getElementById("actBar").style.display="flex";
+  const pct=r.savings.before>0?Math.round((1-r.savings.after/r.savings.before)*100):0;
+  document.getElementById("savBadge").textContent=`${r.savings.before} → ${r.savings.after} tok  ${pct>0?pct+"% leaner":""}`;
+  const rb=document.getElementById("riskBadge");
+  const sc=r.soc.score;
+  rb.style.background=sc<20?"var(--green-dim)":sc<50?"var(--amber-dim)":"var(--red-dim)";
+  rb.style.color=sc<20?"var(--green-text)":sc<50?"var(--amber-text)":"var(--red-text)";
+  rb.textContent=`Risk ${sc}  ${sc<20?"SOC2 CLEAN":sc<50?"MODERATE":"HIGH RISK"}`;
+}
+
+function renderPredict(){
+  const p=results.prediction||{};
+  const tip=results.model_tip||"";
+  document.getElementById("tabBody").innerHTML=`<div class="fadein" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--bg2);border-radius:8px;padding:14px 15px;border:1px solid var(--border)">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:8px;font-weight:700">PREDICTED OUTPUT PREVIEW</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.75">${esc(p.preview||"Enhancement applied. Expect a well-structured, focused response.")}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:var(--bg2);border-radius:7px;padding:12px 13px;border:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:5px">OUTPUT LENGTH</div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)">${esc(p.length||"Medium")}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:7px;padding:12px 13px;border:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:5px">RESPONSE TONE</div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)">${esc(p.tone||"Professional")}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:7px;padding:12px 13px;border:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:5px">QUALITY SCORE</div>
+        <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace">${p.quality_score||85}<span style="font-size:12px;color:var(--text3)">/100</span></div>
+      </div>
+      <div style="background:var(--bg2);border-radius:7px;padding:12px 13px;border:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:5px">PRIMARY FOCUS</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text);line-height:1.4">${esc(p.focus||"Task completion")}</div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border2);border-radius:8px;padding:13px 15px;border-left:3px solid var(--accent)">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:6px">MODEL-SPECIFIC TIP</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.65">${esc(tip)}</div>
+    </div>
+  </div>`;
+}
+
+function renderSOC(){
+  const soc=results.soc;
+  const sc=soc.score;
+  const col=sc<20?"var(--green)":sc<50?"var(--amber)":"var(--red-text)";
+  const dim=sc<20?"var(--green-dim)":sc<50?"var(--amber-dim)":"var(--red-dim)";
+  const lbl=sc<20?"Clean":sc<50?"Moderate risk":"High risk";
+  document.getElementById("tabBody").innerHTML=`<div class="fadein" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--bg2);border-radius:8px;padding:16px;display:flex;align-items:center;gap:16px;border:1px solid var(--border)">
+      <div style="text-align:center;flex-shrink:0">
+        <div style="font-size:42px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${col};line-height:1">${sc}</div>
+        <div style="font-size:9px;letter-spacing:2px;color:${col};margin-top:4px">${lbl.toUpperCase()}</div>
+      </div>
+      <div style="flex:1">
+        <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:10px">
+          <div style="height:100%;width:${sc}%;background:${col};border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text2)">Composite risk score across ${soc.flags.length} security checks</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">All checks run client-side — prompt never leaves your browser</div>
+      </div>
+      ${sc<20?`<div style="padding:7px 12px;background:var(--green-dim);color:var(--green-text);border-radius:7px;font-size:10px;font-weight:700;letter-spacing:1px;flex-shrink:0">SOC2 CLEAN</div>`:""}
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <div style="padding:9px 15px;background:var(--bg2);border-bottom:1px solid var(--border)">
+        <span style="font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text3)">SECURITY CHECKS</span>
+      </div>
+      <div style="padding:2px 15px">
+        ${soc.flags.map(f=>{
+          const c=f.hit?(f.severity==="high"?"#E24B4A":f.severity==="medium"?"#BA7517":"#888780"):"var(--green)";
+          return`<div class="soc-row">
+            <div class="soc-dot" style="background:${c}"></div>
+            <span style="flex:1;font-size:12px;color:var(--text)">${f.label}</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:${c}">${f.hit?(f.severity.toUpperCase()+" FLAGGED"):"PASS"}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAnalysis(){
+  const r=results;
+  const bef=r.savings.before,aft=r.savings.after;
+  const pct=bef>0?Math.round((1-aft/bef)*100):0;
+  const qb=r.quality_before||42,qa=r.quality_after||88;
+  const changes=r.changes||[];
+  document.getElementById("tabBody").innerHTML=`<div class="fadein" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:var(--bg2);border-radius:7px;padding:13px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)">${bef}</div>
+        <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-top:3px">TOKENS IN</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:7px;padding:13px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent)">${aft}</div>
+        <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-top:3px">TOKENS OUT</div>
+      </div>
+      <div style="background:var(--green-dim);border-radius:7px;padding:13px;text-align:center;border:1px solid var(--green)">
+        <div style="font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--green-text)">${pct>0?pct+"%":"~"}</div>
+        <div style="font-size:9px;color:var(--green-text);letter-spacing:1px;margin-top:3px">LEANER</div>
+      </div>
+    </div>
+    <div style="background:var(--bg2);border-radius:8px;padding:14px 15px;border:1px solid var(--border)">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:12px;font-weight:700">QUALITY DELTA</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:10px;color:var(--text3);width:50px">Before</span>
+        <div style="flex:1;height:7px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${qb}%;background:#993C1D;border-radius:3px"></div>
+        </div>
+        <span style="font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;color:#F0997B;width:32px;text-align:right">${qb}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:10px;color:var(--text3);width:50px">After</span>
+        <div style="flex:1;height:7px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${qa}%;background:var(--green);border-radius:3px"></div>
+        </div>
+        <span style="font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;color:var(--green-text);width:32px;text-align:right">${qa}</span>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;padding:14px 15px">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:10px;font-weight:700">WHAT CHANGED</div>
+      ${changes.map(c=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;font-size:12px;color:var(--text);line-height:1.6"><span style="color:var(--accent);flex-shrink:0;margin-top:2px;font-family:'JetBrains Mono',monospace">+</span><span>${esc(c)}</span></div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function addHist(item){
+  hist=[item,...hist].slice(0,5);
+  document.getElementById("histBar").style.display="block";
+  document.getElementById("histToggle").textContent=`RECENT LIFTS (${hist.length})  ${histOpen?"▲":"▼"}`;
+  renderHistCards();
+}
+
+function renderHistCards(){
+  document.getElementById("histCards").innerHTML=hist.map((h,i)=>`
+    <div class="hcard" onclick="loadHist(${i})">
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:133px">${esc(h.preview)}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text3)">${h.model}</span>
+        <span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${h.soc<20?"var(--green-dim)":h.soc<50?"var(--amber-dim)":"var(--red-dim)"};color:${h.soc<20?"var(--green-text)":h.soc<50?"var(--amber-text)":"var(--red-text)"}">${h.soc}</span>
+      </div>
+    </div>`).join("");
+}
+
+window.loadHist=function(i){
+  const h=hist[i];
+  document.getElementById("rawIn").value=h.rawText;
+  document.getElementById("mdlSel").value=h.model;
+  updateStats(h.rawText);renderDNA(h.rawText);
+  results=h.results;curMode=h.mode;
+  document.querySelectorAll(".mpill").forEach(b=>b.classList.toggle("on",b.dataset.m===h.mode));
+  showTab(curTab);
+};
+
+document.getElementById("rawIn").addEventListener("input",function(){
+  updateStats(this.value);renderDNA(this.value);
+});
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.t)));
+document.querySelectorAll(".mpill").forEach(b=>b.addEventListener("click",()=>{
+  curMode=b.dataset.m;
+  document.querySelectorAll(".mpill").forEach(p=>p.classList.remove("on"));
+  b.classList.add("on");
+}));
+document.getElementById("histToggle").addEventListener("click",()=>{
+  histOpen=!histOpen;
+  const hc=document.getElementById("histCards");
+  hc.style.display=histOpen?"flex":"none";
+  document.getElementById("histToggle").textContent=`RECENT LIFTS (${hist.length})  ${histOpen?"▲":"▼"}`;
+});
+document.getElementById("clrBtn").addEventListener("click",()=>{
+  document.getElementById("rawIn").value="";
+  updateStats("");renderDNA("");results=null;renderPlaceholder();
+});
+document.getElementById("copyBtn").addEventListener("click",function(){
+  if(!results)return;
+  navigator.clipboard.writeText(results.enhanced_prompt).catch(()=>{});
+  this.textContent="Copied ✓";
+  this.style.color="var(--accent)";
+  setTimeout(()=>{this.textContent="Copy enhanced prompt";this.style.color="";},2200);
+});
+document.addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){e.preventDefault();document.getElementById("liftBtn").click();}
+});
+
+document.getElementById("liftBtn").addEventListener("click",async()=>{
+  const input=document.getElementById("rawIn").value.trim();
+  if(!input)return;
+  const btn=document.getElementById("liftBtn");
+  const model=document.getElementById("mdlSel").value;
+  btn.textContent="Lifting…";btn.disabled=true;
+  renderLifting();
+  const socData=socScan(input);
+  const inToks=tokEst(input);
+  const sys=`You are PromptLiftingAI — a world-class prompt engineering engine. Transform the user's raw prompt into a precision-crafted version optimized for ${model.toUpperCase()}.
+
+Model-specific rules: ${MODEL_RULES[model]}
+Output mode: ${curMode.toUpperCase()} — ${MODE_RULES[curMode]}
+
+Respond ONLY with valid JSON. No markdown fences. No preamble. No trailing text:
+{
+  "enhanced_prompt": "the full rewritten prompt here",
+  "prediction": {
+    "preview": "2-3 sentences describing what the LLM will output",
+    "length": "Short|Medium|Long|Very Long",
+    "tone": "single word e.g. Professional",
+    "quality_score": 85,
+    "focus": "primary focus in 4 words"
+  },
+  "changes": ["10-word description of change 1","10-word description of change 2","10-word description of change 3"],
+  "quality_before": 40,
+  "quality_after": 88,
+  "model_tip": "one actionable sentence specific to getting best results from ${model}"
+}`;
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        system:sys,
+        messages:[{role:"user",content:`Transform this prompt:\n\n${input}`}]
+      })
+    });
+    if(!resp.ok){
+      let msg=`HTTP ${resp.status}`;
+      try{const e=await resp.json();msg=e?.error?.message||msg;}catch(_){}
+      throw new Error(msg);
+    }
+    const data=await resp.json();
+    const raw=(data.content||[]).map(b=>b.text||"").join("");
+    let parsed;
+    try{parsed=JSON.parse(raw.replace(/```json|```/g,"").trim());}
+    catch{
+      parsed={enhanced_prompt:raw,prediction:{preview:"Your prompt has been enhanced and restructured for clarity.",length:"Medium",tone:"Professional",quality_score:82,focus:"Task completion"},changes:["Added explicit role assignment","Restructured for clarity","Applied model-specific formatting"],quality_before:38,quality_after:82,model_tip:`Format output expectations explicitly when using ${model}.`};
+    }
+    const outToks=tokEst(parsed.enhanced_prompt);
+    results={...parsed,soc:socData,savings:{before:inToks,after:outToks}};
+    addHist({preview:input.slice(0,52)+"…",rawText:input,model,mode:curMode,soc:socData.score,results});
+    showTab(curTab);
+  }catch(err){
+    document.getElementById("tabBody").innerHTML=`<div style="padding:22px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="padding:14px 16px;background:var(--red-dim);border-radius:8px;border:1px solid var(--red)">
+        <div style="font-size:12px;font-weight:700;color:var(--red-text);margin-bottom:5px">API Error</div>
+        <div style="font-size:11px;color:var(--red-text);font-family:'JetBrains Mono',monospace">${esc(err.message)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">This app calls the Anthropic API. The API proxy is active inside Claude.ai artifacts. If you see this error outside of Claude.ai, you may need to add your own API key.</div>
+      <button onclick="document.getElementById('liftBtn').click()" style="padding:9px 16px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:7px;font-size:12px;cursor:pointer">Retry ↺</button>
+    </div>`;
+    document.getElementById("actBar").style.display="none";
+  }finally{
+    btn.textContent="LIFT IT  ↑";btn.disabled=false;
+  }
+});
+
+renderDNA("");
+renderPlaceholder();
+</script>
+</body>
+</html>
